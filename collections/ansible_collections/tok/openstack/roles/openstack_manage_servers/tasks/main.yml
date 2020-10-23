@@ -1,0 +1,31 @@
+- name: Create instances
+  os_server:
+    cloud: openstack
+    name: "{{ item.name }}"
+    image: rhel-7.6
+    key_name: ansible_ssh_key
+    flavor: m2.medium
+    security_groups: "{{ item.secgroup }}"
+    delete_fip: yes
+    wait: no
+    nics:
+      - net-name: int_network
+    meta: "{{ item.meta }}"
+    userdata: |
+      #!/bin/bash
+      curl -o /tmp/openstack.pub http://www.opentlc.com/download/ansible_bootcamp/openstack_keys/openstack.pub
+      cat /tmp/openstack.pub >> /home/cloud-user/.ssh/authorized_keys
+  loop:
+    - { name: 'frontend1', secgroup: 'frontend', meta: 'group=load_balancers, deployment_name=dev' }
+    - { name: 'app1', secgroup: 'apps', meta: 'group=app_servers, deployment_name=QA' }
+    - { name: 'app2', secgroup: 'apps', meta: 'group=app_servers, deployment_name=QA' }
+    - { name: 'appdb1', secgroup: 'db', meta: 'group=database_servers, deployment_name=dev' }
+
+- name: Add/Remove floating IP from an instance
+  os_floating_ip:
+    server: "{{ item }}"
+  loop:
+    - frontend1
+    - app1
+    - app2
+    - appdb1
